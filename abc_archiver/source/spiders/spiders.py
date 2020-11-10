@@ -50,7 +50,14 @@ class NewsSpider(scrapy.Spider):
         authors = response.selector.xpath("//@content")[12:14].getall()
         print("Authors: ", authors)
         pub_date = response.selector.xpath("//@datetime").get()
-        print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
+        if type(pub_date) == str() and len(pub_date) > 18:
+            print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
+        else:
+            pub_date = response.selector.xpath("//@datetime")[2].get()
+            if type(pub_date) == str() and len(pub_date) > 18:
+                print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
+            else:
+                print_date = "2000-00-00 00:00:00+10"
         print("Print_date: ", print_date)
         tease = response.selector.xpath("//@content")[3].get()
         print("Tease: ", tease)
