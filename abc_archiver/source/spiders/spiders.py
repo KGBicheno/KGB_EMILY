@@ -3,8 +3,14 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 import json
 from pprint import pprint
+import re
 
 print("spider is a go")
+
+TAG_RE = re.compile(r"<[^>]+>")
+
+def remove_tags(text):
+    return TAG_RE.sub('', text)
 
 def quote(value):
     if type(value) == str():
@@ -43,8 +49,11 @@ class NewsSpider(scrapy.Spider):
         tease = response.selector.xpath("//@content")[3].get()
         print("Tease: ", tease)
         bodytext = []
+        clean_bodytext = []
         bodytext = response.css("p._1HzXw").getall()
-        print("Bodytext: ", bodytext)
+        for par in bodytext:
+            clean_bodytext.append(remove_tags(par))
+        print("Bodytext: ", clean_bodytext)
         keywords = response.selector.xpath("//@content")[4].get()
         print("Keywords: ", keywords)
         article_tags = []
@@ -62,7 +71,7 @@ class NewsSpider(scrapy.Spider):
             "authors" : quote(authors),
             "print_date" : quote(print_date),
             "tease " : quote(tease),
-            "bodytext " : quote(bodytext),
+            "bodytext " : quote(clean_bodytext),
             "keywords" : quote(keywords),
             "article_tags" : quote(article_tags)
         }
