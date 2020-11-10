@@ -50,7 +50,7 @@ class NewsSpider(scrapy.Spider):
         authors = response.selector.xpath("//@content")[12:14].getall()
         print("Authors: ", authors)
         pub_date = response.selector.xpath("//@datetime").get()
-        if pub_date not None:
+        if pub_date is not None:
             print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
         else:
             print_date = "2000-01-01 01:01:01+10"
