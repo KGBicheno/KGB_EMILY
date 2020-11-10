@@ -57,7 +57,7 @@ class NewsSpider(scrapy.Spider):
             if type(pub_date) == str() and len(pub_date) > 18:
                 print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
             else:
-                print_date = "2000-00-00 00:00:00+10"
+                print_date = "2000-01-01 00:00:00+10"
         print("Print_date: ", print_date)
         tease = response.selector.xpath("//@content")[3].get()
         print("Tease: ", tease)
