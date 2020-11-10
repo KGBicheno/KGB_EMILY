@@ -4,6 +4,12 @@ from scrapy.crawler import CrawlerProcess
 import json
 from pprint import pprint
 import re
+import psycopg2
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+PSQL_PASS = os.getenv("PSQL_PASS")
 
 print("spider is a go")
 
@@ -31,10 +37,10 @@ class NewsSpider(scrapy.Spider):
 
 
     def parse(self, response):
-        with open("abc_archive.json", "r") as source:
-            data = json.load(source)
-        page = response.url         #.split("/")[3]
-        print("Page: ", page)
+        #with open("abc_archive.json", "r") as source:
+        #    data = json.load(source)
+        page_url = response.url         #.split("/")[3]
+        print("Page: ", page_url)
         title = response.selector.xpath("//@content")[2].get()
         print("Title: ", title)
         headtext = response.css('h1::text').get()
@@ -53,7 +59,7 @@ class NewsSpider(scrapy.Spider):
         bodytext = response.css("p._1HzXw").getall()
         for par in bodytext:
             clean_bodytext.append(remove_tags(par))
-        print("Bodytext: ", clean_bodytext)
+        #print("Bodytext: ", clean_bodytext)
         keywords = response.selector.xpath("//@content")[4].get()
         print("Keywords: ", keywords)
         article_tags = []
@@ -64,26 +70,35 @@ class NewsSpider(scrapy.Spider):
         for item in article_tags:
             print("Tag: ", item)
 
-        article_dict  =  {
-            "title" : quote(title),
-            "headtext" : quote(headtext),
-            "byline " : quote(byline),
-            "authors" : quote(authors),
-            "print_date" : quote(print_date),
-            "tease " : quote(tease),
-            "bodytext " : quote(clean_bodytext),
-            "keywords" : quote(keywords),
-            "article_tags" : quote(article_tags)
-        }
-        data['Stories'].append(article_dict)
-        with open("abc_archive.json", "w") as archive:
-            archive = json.dump(data, archive, indent=2)
-        with open("abc_archive.json", "r") as queue:
-            url_update = json.load(queue)
-        this_article = { quote(response.url) : "done" }
-        url_update["Stories"].append(this_article)
-        with open("abc_archive.json", "w") as new_queue:
-            new_queue =json.dump(url_update, new_queue, indent=2)
+        postgres_insert_query = """ INSERT INTO articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+        record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
+        cursor.execute(postgres_insert_query, record_to_insert)
+        connection.commit()
+        count = cursor.rowcount
+        print("**************************************\n")
+        print(count, " records added to the articles table. \n")
+        print("**************************************\n")
+
+        #article_dict  =  {
+        #    "title" : quote(title),
+        #    "headtext" : quote(headtext),
+        #    "byline " : quote(byline),
+        #    "authors" : quote(authors),
+        #    "print_date" : quote(print_date),
+        #    "tease " : quote(tease),
+        #    "bodytext " : quote(clean_bodytext),
+        #    "keywords" : quote(keywords),
+        #    "article_tags" : quote(article_tags)
+        #}
+        #data['Stories'].append(article_dict)
+        #with open("abc_archive.json", "w") as archive:
+        #    archive = json.dump(data, archive, indent=2)
+        #with open("abc_archive.json", "r") as queue:
+        #    url_update = json.load(queue)
+        #this_article = { quote(response.url) : "done" }
+        #url_update["Stories"].append(this_article)
+        #with open("abc_archive.json", "w") as new_queue:
+        #    new_queue =json.dump(url_update, new_queue, indent=2)
         next_page = response.css('a._3OwCD').xpath('@href').getall()
         for page in next_page:
             if "/news/20" in page[:8]:
@@ -95,5 +110,28 @@ process = CrawlerProcess(settings={
     },
 })
 
-process.crawl(NewsSpider)
-process.start()
+try:
+    connection = psycopg2.connect(
+        user = "websinthe",
+        password = PSQL_PASS,
+        host = "192.168.1.7",
+        port = "5432",
+        database = "websinthe"
+    )
+
+    cursor = connection.cursor()
+    print(connection.get_dsn_parameters(), "\n")
+
+    process.crawl(NewsSpider)
+    process.start()
+
+    cursor.execute("SELECT version();")
+    record = cursor.fetchone()
+    print("Successfully connected to ", record, "\n")
+except (Exception, psycopg2.Error) as error:
+    print("Error while connection to database: ", error)
+finally:
+    if(connection):
+        cursor.close()
+        connection.close()
+        print("Connection to database has been closed.")
