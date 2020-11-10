@@ -19,7 +19,6 @@ def quote(value):
         for value in list:
             if type(value) == str():
                 value = "\"" + value + "\""
-    print(value)
     return value
 
 class NewsSpider(scrapy.Spider):
@@ -34,7 +33,7 @@ class NewsSpider(scrapy.Spider):
     def parse(self, response):
         with open("abc_archive.json", "r") as source:
             data = json.load(source)
-        page = response.url.split("/")[3]
+        page = response.url         #.split("/")[3]
         print("Page: ", page)
         title = response.selector.xpath("//@content")[2].get()
         print("Title: ", title)
@@ -44,7 +43,8 @@ class NewsSpider(scrapy.Spider):
         print("Byline: ", byline)
         authors = response.selector.xpath("//@content")[12:14].getall()
         print("Authors: ", authors)
-        print_date = response.selector.xpath("//@datetime").get()
+        pub_date = response.selector.xpath("//@datetime").get()
+        print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
         print("Print_date: ", print_date)
         tease = response.selector.xpath("//@content")[3].get()
         print("Tease: ", tease)
