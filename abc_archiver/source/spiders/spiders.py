@@ -33,12 +33,12 @@ class NewsSpider(scrapy.Spider):
 
 
     def start_requests(self):
-        yield scrapy.Request("https://www.abc.net.au/news/justin/", self.parse)
+        yield scrapy.Request("https://www.abc.net.au/news/justin/", self.parse, connection)
 
 
-    def parse(self, response):
-        #with open("abc_archive.json", "r") as source:
-        #    data = json.load(source)
+    def parse(self, response, connection):
+        cursor = connection.cursor()
+        print(connection.get_dsn_parameters(), "\n")
         page_url = response.url         #.split("/")[3]
         print("Page: ", page_url)
         title = response.selector.xpath("//@content")[2].get()
@@ -82,7 +82,7 @@ class NewsSpider(scrapy.Spider):
             print("**************************************\n")
             print(count, " record added to the articles table. \n")
             print("**************************************\n")
-
+        cursor.close()
         #article_dict  =  {
         #    "title" : quote(title),
         #    "headtext" : quote(headtext),
@@ -125,13 +125,15 @@ try:
 
     cursor = connection.cursor()
     print(connection.get_dsn_parameters(), "\n")
+    cursor.execute("SELECT version();")
+    record = cursor.fetchone()
+    print("Successfully connected to ", record, "\n")
+    cursor.close()
 
     process.crawl(NewsSpider)
     process.start()
 
-    cursor.execute("SELECT version();")
-    record = cursor.fetchone()
-    print("Successfully connected to ", record, "\n")
+
 except (Exception, psycopg2.Error) as error:
     print("Error while connection to database: ", error)
 finally:
