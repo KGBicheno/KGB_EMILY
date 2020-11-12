@@ -33,10 +33,10 @@ class NewsSpider(scrapy.Spider):
 
 
     def start_requests(self):
-        yield scrapy.Request("https://www.abc.net.au/news/justin/", self.parse, connection)
+        yield scrapy.Request("https://www.abc.net.au/news/justin/", self.parse)
 
 
-    def parse(self, response, connection):
+    def parse(self, response):
         cursor = connection.cursor()
         print(connection.get_dsn_parameters(), "\n")
         page_url = response.url         #.split("/")[3]
