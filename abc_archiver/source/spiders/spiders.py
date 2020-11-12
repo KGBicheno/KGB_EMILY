@@ -73,14 +73,15 @@ class NewsSpider(scrapy.Spider):
         for item in article_tags:
             print("Tag: ", item)
 
-        postgres_insert_query = """ INSERT INTO articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
-        record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
-        cursor.execute(postgres_insert_query, record_to_insert)
-        connection.commit()
-        count = cursor.rowcount
-        print("**************************************\n")
-        print(count, " records added to the articles table. \n")
-        print("**************************************\n")
+        if page_url != "https://www.abc.net.au/news/justin/":
+            postgres_insert_query = """ INSERT INTO articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+            record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
+            cursor.execute(postgres_insert_query, record_to_insert)
+            connection.commit()
+            count = cursor.rowcount
+            print("**************************************\n")
+            print(count, " record added to the articles table. \n")
+            print("**************************************\n")
 
         #article_dict  =  {
         #    "title" : quote(title),
