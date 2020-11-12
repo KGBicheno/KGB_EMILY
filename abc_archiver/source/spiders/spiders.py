@@ -37,52 +37,72 @@ class NewsSpider(scrapy.Spider):
 
 
     def parse(self, response):
-        cursor = connection.cursor()
-        print(connection.get_dsn_parameters(), "\n")
-        page_url = response.url         #.split("/")[3]
-        print("Page: ", page_url)
-        title = response.selector.xpath("//@content")[2].get()
-        print("Title: ", title)
-        headtext = response.css('h1::text').get()
-        print("Headtext: ", headtext)
-        byline = response.selector.xpath('//span/span/p/a/text()').getall()
-        print("Byline: ", byline)
-        authors = response.selector.xpath("//@content")[12:14].getall()
-        print("Authors: ", authors)
-        pub_date = response.selector.xpath("//@datetime").get()
-        if pub_date is not None:
-            print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
-        else:
-            print_date = "2000-01-01 01:01:01+10"
-        print("Print_date: ", print_date)
-        tease = response.selector.xpath("//@content")[3].get()
-        print("Tease: ", tease)
-        bodytext = []
-        clean_bodytext = []
-        bodytext = response.css("p._1HzXw").getall()
-        for par in bodytext:
-            clean_bodytext.append(remove_tags(par))
-        #print("Bodytext: ", clean_bodytext)
-        keywords = response.selector.xpath("//@content")[4].get()
-        print("Keywords: ", keywords)
-        article_tags = []
-        for element in response.css('meta').getall():
-            if "property=\"article:tag\"" in element:
-                element = element.replace("\">", "")
-                article_tags.append(element.replace("<meta data-react-helmet=\"true\" property=\"article:tag\" content=\"", ""))
-        for item in article_tags:
-            print("Tag: ", item)
+        try:
+            connection = psycopg2.connect(
+            user = "websinthe",
+            password = PSQL_PASS,
+            host = "192.168.1.7",
+            port = "5432",
+            database = "websinthe"
+            )
+            cursor = connection.cursor()
+            print(connection.get_dsn_parameters(), "\n")
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            print("Successfully connected to ", record, "\n")
+            cursor.close()
+            cursor = connection.cursor()
+            print(connection.get_dsn_parameters(), "\n")
+            page_url = response.url         #.split("/")[3]
+            print("Page: ", page_url)
+            title = response.selector.xpath("//@content")[2].get()
+            print("Title: ", title)
+            headtext = response.css('h1::text').get()
+            print("Headtext: ", headtext)
+            byline = response.selector.xpath('//span/span/p/a/text()').getall()
+            print("Byline: ", byline)
+            authors = response.selector.xpath("//@content")[12:14].getall()
+            print("Authors: ", authors)
+            pub_date = response.selector.xpath("//@datetime").get()
+            if pub_date is not None:
+                print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
+            else:
+                print_date = "2000-01-01 01:01:01+10"
+            print("Print_date: ", print_date)
+            tease = response.selector.xpath("//@content")[3].get()
+            print("Tease: ", tease)
+            bodytext = []
+            clean_bodytext = []
+            bodytext = response.css("p._1HzXw").getall()
+            for par in bodytext:
+                clean_bodytext.append(remove_tags(par))
+            #print("Bodytext: ", clean_bodytext)
+            keywords = response.selector.xpath("//@content")[4].get()
+            print("Keywords: ", keywords)
+            article_tags = []
+            for element in response.css('meta').getall():
+                if "property=\"article:tag\"" in element:
+                    element = element.replace("\">", "")
+                    article_tags.append(element.replace("<meta data-react-helmet=\"true\" property=\"article:tag\" content=\"", ""))
+            for item in article_tags:
+                print("Tag: ", item)
 
-        if page_url != "https://www.abc.net.au/news/justin/":
-            postgres_insert_query = """ INSERT INTO articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
-            record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
-            cursor.execute(postgres_insert_query, record_to_insert)
-            connection.commit()
-            count = cursor.rowcount
-            print("**************************************\n")
-            print(count, " record added to the articles table. \n")
-            print("**************************************\n")
-        cursor.close()
+            if page_url != "https://www.abc.net.au/news/justin/":
+                postgres_insert_query = """ INSERT INTO articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+                record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
+                cursor.execute(postgres_insert_query, record_to_insert)
+                connection.commit()
+                count = cursor.rowcount
+                print("**************************************\n")
+                print(count, " record added to the articles table. \n")
+                print("**************************************\n")
+        except (Exception, psycopg2.Error) as error:
+            print("Error while connection to database: ", error)
+        finally:
+            if(connection):
+                cursor.close()
+                connection.close()
+                print("Connection to database has been closed.")
         #article_dict  =  {
         #    "title" : quote(title),
         #    "headtext" : quote(headtext),
@@ -114,30 +134,7 @@ process = CrawlerProcess(settings={
     },
 })
 
-try:
-    connection = psycopg2.connect(
-        user = "websinthe",
-        password = PSQL_PASS,
-        host = "192.168.1.7",
-        port = "5432",
-        database = "websinthe"
-    )
-
-    cursor = connection.cursor()
-    print(connection.get_dsn_parameters(), "\n")
-    cursor.execute("SELECT version();")
-    record = cursor.fetchone()
-    print("Successfully connected to ", record, "\n")
-    cursor.close()
-
-    process.crawl(NewsSpider)
-    process.start()
 
 
-except (Exception, psycopg2.Error) as error:
-    print("Error while connection to database: ", error)
-finally:
-    if(connection):
-        cursor.close()
-        connection.close()
-        print("Connection to database has been closed.")
+process.crawl(NewsSpider)
+process.start()
