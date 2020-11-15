@@ -131,3 +131,4 @@ dmypy.json
 # Results json file
 abc_archive.json
 abc_archiver/source/spiders/abc_archive.json
+abc_archiver/source/spiders/nohup.out
