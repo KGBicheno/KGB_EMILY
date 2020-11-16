@@ -1,0 +1,11 @@
+Name Title: response.xpath("//h1/text()").get()
+
+Messy electorate: response.xpath("//h1/text()").get()  # needs to be cleaned of escape chars and sliced
+
+details: response.xpath("//h1/text()").get()
+
+	- Position/role = response.xpath("//h3/following-sibling::div/dl/dd/text()").getall()[0]
+	- Party = response.xpath("//h3/following-sibling::div/dl/dd/text()").getall()[1]
+	- House = response.xpath("//h3/following-sibling::div/dl/dd/text()").getall()[2]
+
+Facts: response.xpath("//h2/following-sibling::dl/dd/ul/li/text()").getall() # need to get the headings for this one
