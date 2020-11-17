@@ -1,4 +1,6 @@
 #! /usr/bin/python/env
+from datetime import date, time
+from datetime import datetime, timedelta
 import scrapy
 from scrapy.crawler import CrawlerProcess
 import json
@@ -30,6 +32,11 @@ def quote(value):
 class NewsSpider(scrapy.Spider):
     name = "ABC"
     allowed_domains = ['abc.net.au']
+    custom_settings = {
+        'DEPTH_PRIORITY' : 1,
+        'SCHEDULER_DISK_QUEUE' : 'scrapy.squeues.PickleFifoDiskQueue',
+        'SCHEDULER_MEMORY_QUEUE' : 'scrapy.squeues.FifoMemoryQueue'
+    }
 
 
     def start_requests(self):
