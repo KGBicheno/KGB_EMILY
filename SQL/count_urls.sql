@@ -1,0 +1,1 @@
+select COUNT(page_url) from articles;
