@@ -33,15 +33,28 @@ def word_count(copy: str):
     return len(count_list)
 
 with engine.connect() as conn, conn.begin():
-    article_proxy = pd.read_sql_query("""Select headtext, tease, bodytext, print_date from articles ORDER BY print_date DESC LIMIT 50;""", conn)
+    article_proxy = pd.read_sql_query("""Select page_url, headtext, tease, bodytext, print_date from articles ORDER BY print_date DESC;""", conn)
 
 headline_counts = article_proxy['headtext'].map(lambda a: len(a.split(" ", -1)))
 # print(headline_counts.head())
-headline_counts.hist()
+# headline_counts.hist()
 
 tease_counts = article_proxy['tease'].map(lambda a: len(a.split(" ", -1)))
 # print(tease_counts.head())
+# tease_counts.hist()
 
 body_joined = article_proxy['bodytext'].map(lambda a: "|".join(a))
+body_joined = body_joined.map(lambda a: a.replace("|", ""))
+# print(body_joined.head())
 body_counts = body_joined.map(lambda a: len(a.split(" ", -1)))
 # print(body_counts.head())
+
+# body_counts.hist(bins=300)
+
+counts = { "page_url": article_proxy['page_url'], "headline_counts": headline_counts, "tease_counts": tease_counts, "body_counts": body_counts}
+article_numbers = pd.DataFrame(counts)
+
+# print(article_numbers)
+
+with engine.connect() as conn, conn.begin():
+    article_numbers.to_sql("counts", conn, if_exists="append", chunksize=1000, index=False)
