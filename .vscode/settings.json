@@ -3,5 +3,17 @@
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
-    "python.pythonPath": "/home/websinthe/anaconda3/bin/python"
+    "python.pythonPath": "/home/websinthe/anaconda3/bin/python",
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "192.168.132.85",
+            "port": 5432,
+            "askForPassword": true,
+            "driver": "PostgreSQL",
+            "name": "EMILY",
+            "database": "websinthe",
+            "username": "websinthe"
+        }
+    ]
 }

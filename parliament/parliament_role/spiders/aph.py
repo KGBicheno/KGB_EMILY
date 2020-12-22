@@ -8,3 +8,4 @@ class AphSpider(scrapy.Spider):
 
     def parse(self, response):
         pass
+

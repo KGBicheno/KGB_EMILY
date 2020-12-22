@@ -1,0 +1,1 @@
+Select headtext, tease, bodytext, print_date from articles ORDER BY print_date DESC;
