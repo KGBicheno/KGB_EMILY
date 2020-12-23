@@ -1,0 +1,1 @@
+SELECT page_url, bodytext FROM articles WHERE bodytext='[]';

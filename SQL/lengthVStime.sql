@@ -1,0 +1,1 @@
+Select * from articles ORDER BY print_date DESC LIMIT 8;
