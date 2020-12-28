@@ -7,7 +7,7 @@
     "sqltools.connections": [
         {
             "previewLimit": 50,
-            "server": "192.168.132.85",
+            "server": "192.168.132.19",
             "port": 5432,
             "askForPassword": true,
             "driver": "PostgreSQL",
