@@ -13,7 +13,7 @@ load_dotenv()
 
 PSQL_PASS = os.getenv("PSQL_PASS")
 
-print("ABC spider is a go")
+print("NCA spider is a go")
 
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -30,8 +30,8 @@ def quote(value):
     return value
 
 class NewsSpider(scrapy.Spider):
-    name = "ABC"
-    allowed_domains = ['abc.net.au']
+    name = "NCA"
+    allowed_domains = ['news.com.au']
     custom_settings = {
         'DEPTH_PRIORITY' : 1,
         'SCHEDULER_DISK_QUEUE' : 'scrapy.squeues.PickleFifoDiskQueue',
@@ -40,7 +40,7 @@ class NewsSpider(scrapy.Spider):
 
 
     def start_requests(self):
-        yield scrapy.Request("https://www.abc.net.au/news/justin/", self.parse)
+        yield scrapy.Request("https://www.news.com.au/national/breaking-news", self.parse)
 
 
     def parse(self, response):
@@ -62,40 +62,42 @@ class NewsSpider(scrapy.Spider):
             print(connection.get_dsn_parameters(), "\n")
             page_url = response.url         #.split("/")[3]
             print("Page: ", page_url)
-            title = response.selector.xpath("//@content")[2].get()
+            title = response.css("h1.story-headline::text").get()
             print("Title: ", title)
-            headtext = response.css('h1::text').get()
+            headtext = response.css("h1.story-headline::text").get()
             print("Headtext: ", headtext)
             byline = response.selector.xpath('//span/span/p/a/text()').getall()
             print("Byline: ", byline)
-            authors = response.selector.xpath("//@content")[12:14].getall()
+            authors = response.css(".name::text").get()
             print("Authors: ", authors)
-            pub_date = response.selector.xpath("//@datetime").get()
+            pub_date = response.css(".date::text").get()
+            pub_time = response.css(".time::text").get()
             if pub_date is not None:
-                print_date = pub_date[0:10] + " " + pub_date[11:19] + "+10"
+                pub_date = pub_date + " " + pub_time
+                pub_date = datetime.strptime(pub_date, "%B %d, %Y %I:%M%p")
+                print_date = pub_date.strftime("%Y/%m/%d %H:%M:%S")
+                print_date = print_date + "+10"
             else:
                 print_date = "2000-01-01 01:01:01+10"
             print("Print_date: ", print_date)
-            tease = response.selector.xpath("//@content")[3].get()
+            tease = response.css(".intro::text").get()
             print("Tease: ", tease)
             bodytext = []
             clean_bodytext = []
-            bodytext = response.css("p._1HzXw").getall()
-            for par in bodytext:
-                clean_bodytext.append(remove_tags(par))
+            bodytext = response.css(".intro::text").get()
+            if "Video:" in bodytext:
+                clean_bodytext = bodytext[2:-7]
+            else:
+                clean_bodytext = bodytext[1:-7]
             #print("Bodytext: ", clean_bodytext)
-            keywords = response.selector.xpath("//@content")[4].get()
+            keyword_list = response.selector.xpath("//meta/@content").getall()
+            keywords = keyword_list[7]
             print("Keywords: ", keywords)
             article_tags = []
-            for element in response.css('meta').getall():
-                if "property=\"article:tag\"" in element:
-                    element = element.replace("\">", "")
-                    article_tags.append(element.replace("<meta data-react-helmet=\"true\" property=\"article:tag\" content=\"", ""))
-            for item in article_tags:
-                print("Tag: ", item)
+            article_tags = keywords.split(",")
 
-            if page_url != "https://www.abc.net.au/news/justin/":
-                postgres_insert_query = """ INSERT INTO articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+            if page_url != "https://www.news.com.au/national/breaking-news":
+                postgres_insert_query = """ INSERT INTO nca_articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
                 record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
                 cursor.execute(postgres_insert_query, record_to_insert)
                 connection.commit()
@@ -109,30 +111,12 @@ class NewsSpider(scrapy.Spider):
                 cursor.close()
                 connection.close()
                 print("Connection to database has been closed.")
-        #article_dict  =  {
-        #    "title" : quote(title),
-        #    "headtext" : quote(headtext),
-        #    "byline " : quote(byline),
-        #    "authors" : quote(authors),
-        #    "print_date" : quote(print_date),
-        #    "tease " : quote(tease),
-        #    "bodytext " : quote(clean_bodytext),
-        #    "keywords" : quote(keywords),
-        #    "article_tags" : quote(article_tags)
-        #}
-        #data['Stories'].append(article_dict)
-        #with open("abc_archive.json", "w") as archive:
-        #    archive = json.dump(data, archive, indent=2)
-        #with open("abc_archive.json", "r") as queue:
-        #    url_update = json.load(queue)
-        #this_article = { quote(response.url) : "done" }
-        #url_update["Stories"].append(this_article)
-        #with open("abc_archive.json", "w") as new_queue:
-        #    new_queue =json.dump(url_update, new_queue, indent=2)
-        next_page = response.css('a._3OwCD').xpath('@href').getall()
+        sections_list = ['/natio', '/world', '/lifes', '/trave', '/enter', '/techn', '/finan', '/sport']
+        next_page = response.selector.xpath("//a/@href").getall()
         for page in next_page:
-            if "/news/20" in page[:8]:
-                yield response.follow(page, callback=self.parse)
+            for section in sections_list:
+                if section in page[23:30]:
+                    yield response.follow(page, callback=self.parse)
 
 process = CrawlerProcess(settings={
     "FEEDS": {
