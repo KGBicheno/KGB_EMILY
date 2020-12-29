@@ -50,7 +50,7 @@ class NewsSpider(scrapy.Spider):
             connection = psycopg2.connect(
             user = "websinthe",
             password = PSQL_PASS,
-            host = "192.168.1.19",
+            host = "192.168.132.19",
             port = "5432",
             database = "websinthe"
             )
