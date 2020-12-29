@@ -46,6 +46,7 @@ class NewsSpider(scrapy.Spider):
     def parse(self, response):
         print("Parsing URL")
         try:
+            print("Attempting connection.")
             connection = psycopg2.connect(
             user = "websinthe",
             password = PSQL_PASS,
