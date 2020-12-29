@@ -88,10 +88,10 @@ class NewsSpider(scrapy.Spider):
             clean_bodytext = []
             bodytext = response.css(".intro::text").get()
             if "Video:" in bodytext:
-                clean_bodytext = bodytext[2:-7]
+                clean_bodytext.append(remove_tags(bodytext[2:-7]))
             else:
-                clean_bodytext = bodytext[1:-7]
-            #print("Bodytext: ", clean_bodytext)
+                clean_bodytext.append(remove_tags(bodytext[1:-7]))
+            print("Bodytext: ", clean_bodytext)
             keyword_list = response.selector.xpath("//meta/@content").getall()
             keywords = keyword_list[7]
             print("Keywords: ", keywords)
