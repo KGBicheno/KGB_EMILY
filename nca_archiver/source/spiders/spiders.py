@@ -85,13 +85,8 @@ class NewsSpider(scrapy.Spider):
             tease = response.css(".intro::text").get()
             print("Tease: ", tease)
             bodytext = []
-            clean_bodytext = []
             bodytext = response.css(".intro::text").get()
-            if "Video:" in bodytext:
-                clean_bodytext.append(remove_tags(bodytext[2:-7]))
-            else:
-                clean_bodytext.append(remove_tags(bodytext[1:-7]))
-            print("Bodytext: ", clean_bodytext)
+            print("Bodytext: ", bodytext)
             keyword_list = response.selector.xpath("//meta/@content").getall()
             keywords = keyword_list[7]
             print("Keywords: ", keywords)
@@ -100,7 +95,7 @@ class NewsSpider(scrapy.Spider):
 
             if page_url != "https://www.news.com.au/national/breaking-news":
                 postgres_insert_query = """ INSERT INTO nca_articles (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, tags) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
-                record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, clean_bodytext, keywords, article_tags)
+                record_to_insert = (page_url, title, headtext, byline, authors, print_date, tease, bodytext, keywords, article_tags)
                 cursor.execute(postgres_insert_query, record_to_insert)
                 connection.commit()
                 print("**************************************\n")
