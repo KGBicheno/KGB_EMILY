@@ -85,7 +85,7 @@ class NewsSpider(scrapy.Spider):
             tease = response.css(".intro::text").get()
             print("Tease: ", tease)
             bodytext = []
-            bodytext = response.css(".intro::text").get()
+            bodytext = response.css("p::text").getall()
             print("Bodytext: ", bodytext)
             keyword_list = response.selector.xpath("//meta/@content").getall()
             keywords = keyword_list[7]
