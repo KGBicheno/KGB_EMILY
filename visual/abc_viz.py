@@ -1,5 +1,6 @@
 from datetime import date, time, datetime, timedelta
 import psycopg2
+import pprint
 from matplotlib import pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine
@@ -36,6 +37,38 @@ article_numbers = pd.DataFrame(counts)
 # print(article_numbers)
 
 with engine.connect() as conn, conn.begin():
-    time_counts = pd.read_sql_query("""SELECT articles.page_url, articles.print_date, counts.body_counts, counts.headline_counts, counts.tease_counts FROM articles INNER JOIN counts ON articles.page_url=counts.page_url;""", conn)
+    time_counts = pd.read_sql_query("""SELECT articles.page_url, articles.byline, articles.print_date, counts.body_counts, counts.headline_counts, counts.tease_counts FROM articles INNER JOIN counts ON articles.page_url=counts.page_url;""", conn)
 
-print(time_counts.head())
+authors = []
+
+for byline in time_counts['byline']:
+    for author in byline:
+        authors.append(author)
+
+print(len(authors))
+
+bylines = set(authors)
+
+print(len(bylines))
+
+author_story_counts = []
+author_story_count = 0
+
+for byline in bylines:
+    for authors in time_counts['byline']:
+        if byline in authors:
+            author_story_count += 1
+    byline_dict = dict(byline=byline, stories=author_story_count)
+    author_story_counts.append(byline_dict)
+    author_story_count = 0
+
+# pprint.pprint(author_story_counts)
+
+stories_per_author = pd.DataFrame(author_story_counts)
+
+print(stories_per_author.head)
+
+# print(authors)
+
+# print(time_counts.head())
+
