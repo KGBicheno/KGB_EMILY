@@ -5,8 +5,13 @@ from matplotlib import pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine
 import os
+import spacy
 from dotenv import load_dotenv
 load_dotenv()
+
+spacy.prefer_gpu()
+
+nlp = spacy.load("en_core_web_lg")
 
 PSQL_PASS = os.getenv("PSQL_PASS")
 
@@ -18,57 +23,86 @@ def word_count(copy: str):
     count_list = copy.split(" ", -1)
     return len(count_list)
 
-with engine.connect() as conn, conn.begin():
-    article_proxy = pd.read_sql_query("""Select page_url, headtext, tease, bodytext, print_date from articles ORDER BY print_date DESC;""", conn)
+def article_word_count(engine):
+    with engine.connect() as conn, conn.begin():
+        article_proxy = pd.read_sql_query("""Select page_url, headtext, tease, bodytext, print_date from articles ORDER BY print_date DESC;""", conn)
 
-headline_counts = article_proxy['headtext'].map(lambda a: len(a.split(" ", -1)))
+    headline_counts = article_proxy['headtext'].map(lambda a: len(a.split(" ", -1)))
 
-tease_counts = article_proxy['tease'].map(lambda a: len(a.split(" ", -1)))
+    tease_counts = article_proxy['tease'].map(lambda a: len(a.split(" ", -1)))
 
-body_joined = article_proxy['bodytext'].map(lambda a: "|".join(a))
-body_joined = body_joined.map(lambda a: a.replace("|", ""))
-body_counts = body_joined.map(lambda a: len(a.split(" ", -1)))
+    # This section joins the sentences held as seperate lists in the body text of each article.
 
-# body_counts.hist(bins=300)
+    body_joined = article_proxy['bodytext'].map(lambda a: "|".join(a))
+    body_joined = body_joined.map(lambda a: a.replace("|", ""))
+    body_counts = body_joined.map(lambda a: len(a.split(" ", -1)))
 
-counts = { "page_url": article_proxy['page_url'], "headline_counts": headline_counts, "tease_counts": tease_counts, "body_counts": body_counts}
-article_numbers = pd.DataFrame(counts)
+    body_counts.hist(bins=300)
 
-# print(article_numbers)
+    counts = { "page_url": article_proxy['page_url'], "headline_counts": headline_counts, "tease_counts": tease_counts, "body_counts": body_counts}
+    article_numbers = pd.DataFrame(counts)
 
-with engine.connect() as conn, conn.begin():
-    time_counts = pd.read_sql_query("""SELECT articles.page_url, articles.byline, articles.print_date, counts.body_counts, counts.headline_counts, counts.tease_counts FROM articles INNER JOIN counts ON articles.page_url=counts.page_url;""", conn)
+    article_numbers.sort_values(by=['body_counts'], inplace=True)
 
-authors = []
+    print(article_numbers)
 
-for byline in time_counts['byline']:
-    for author in byline:
-        authors.append(author)
 
-print(len(authors))
+def author_story_counts(engine):
+    with engine.connect() as conn, conn.begin():
+        time_counts = pd.read_sql_query("""SELECT articles.page_url, articles.byline, articles.print_date, counts.body_counts, counts.headline_counts, counts.tease_counts FROM articles INNER JOIN counts ON articles.page_url=counts.page_url;""", conn)
 
-bylines = set(authors)
+    authors = []
 
-print(len(bylines))
+    for byline in time_counts['byline']:
+        for author in byline:
+            authors.append(author)
 
-author_story_counts = []
-author_story_count = 0
+    print(len(authors))
 
-for byline in bylines:
-    for authors in time_counts['byline']:
-        if byline in authors:
-            author_story_count += 1
-    byline_dict = dict(byline=byline, stories=author_story_count)
-    author_story_counts.append(byline_dict)
+    bylines = set(authors)
+
+    print(len(bylines))
+
+    author_story_counts = []
     author_story_count = 0
 
-# pprint.pprint(author_story_counts)
+    for byline in bylines:
+        for authors in time_counts['byline']:
+            if byline in authors:
+                author_story_count += 1
+        byline_dict = dict(byline=byline, stories=author_story_count)
+        author_story_counts.append(byline_dict)
+        author_story_count = 0
 
-stories_per_author = pd.DataFrame(author_story_counts)
 
-print(stories_per_author.head)
+    stories_per_author = pd.DataFrame(author_story_counts)
 
-# print(authors)
+    print(stories_per_author.head)
 
-# print(time_counts.head())
+    print(time_counts.head())
 
+def people_in_teases(engine):
+    with engine.connect() as conn, conn.begin():
+        nre_docs = pd.read_sql_query("""SELECT tease FROM articles LIMIT 100;""", conn)
+
+    print(nre_docs.head)
+
+    nre_lines = nre_docs.to_string(header=False, index=False)
+
+    doc = nlp(nre_lines)
+
+    for ent in doc.ents:
+        if ent.label_ == "PERSON":
+            print(ent.text)
+
+def POS_tag_headlines(engine):
+    with engine.connect() as conn, conn.begin():
+        pos_headlines = pd.read_sql_query("""SELECT headtext FROM articles LIMIT 10;""", conn)
+    
+    pos_headers = pos_headlines.to_string(header=False, index=False)
+    
+    headlines_tagged = nlp(pos_headers)
+    for token in headlines_tagged:
+        print(token.text, " - ", token.dep_)
+
+POS_tag_headlines(engine)
