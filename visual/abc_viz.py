@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 import os
 import spacy
 from dotenv import load_dotenv
+import csv
+import re
 load_dotenv()
 
 spacy.prefer_gpu()
@@ -105,4 +107,33 @@ def POS_tag_headlines(engine):
     for token in headlines_tagged:
         print(token.text, " - ", token.dep_)
 
-POS_tag_headlines(engine)
+def nca_authors_unique(engine):
+    with engine.connect() as conn, conn.begin():
+        authors_raw = pd.read_sql_query("""SELECT DISTINCT authors FROM nca_articles;""", conn)
+
+    authors_split = []
+    authors_temp = []
+
+    authors_list = authors_raw.to_string(header=False, index=False)
+    r = re.compile('(\\n\s\s+)')
+    r.sub(',', authors_list)
+    print(authors_list.split('\n'))
+    for author in authors_list.split(','):
+        author = author.strip()
+        print(author)
+    # for author in authors_list:
+    #     print(author)
+    #     author.replace('and', ',').replace('with', ',')
+    #     authors_temp.append(author.split(','))
+    #     for name in authors_temp:
+    #         name = str(name)
+    #         print(name.strip())
+    #         authors_split.append(name.strip())
+    # with open ('nca_authors.csv', 'w') as listfile:
+    #     wr = csv.writer(listfile, dialect='excel')
+    #     wr.writerow(authors_split)
+
+
+
+
+nca_authors_unique(engine)
