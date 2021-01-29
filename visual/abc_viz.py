@@ -109,31 +109,19 @@ def POS_tag_headlines(engine):
 
 def nca_authors_unique(engine):
     with engine.connect() as conn, conn.begin():
-        authors_raw = pd.read_sql_query("""SELECT DISTINCT authors FROM nca_articles;""", conn)
+        authors_raw = pd.read_sql_query("""SELECT authors FROM nca_articles;""", conn)
 
-    authors_split = []
-    authors_temp = []
+    r = re.compile('(\s\s+)')
 
-    authors_list = authors_raw.to_string(header=False, index=False)
-    r = re.compile('(\\n\s\s+)')
-    r.sub(',', authors_list)
-    print(authors_list.split('\n'))
-    for author in authors_list.split(','):
-        author = author.strip()
-        print(author)
-    # for author in authors_list:
-    #     print(author)
-    #     author.replace('and', ',').replace('with', ',')
-    #     authors_temp.append(author.split(','))
-    #     for name in authors_temp:
-    #         name = str(name)
-    #         print(name.strip())
-    #         authors_split.append(name.strip())
-    # with open ('nca_authors.csv', 'w') as listfile:
-    #     wr = csv.writer(listfile, dialect='excel')
-    #     wr.writerow(authors_split)
+    gutfunc = lambda x: r.sub(' ', str(x))
+    stripfunc = lambda x: str(x).strip()
+    capfunc = lambda x: str(x).title()
+    authors_raw = authors_raw.applymap(stripfunc)
+    authors_raw = authors_raw.applymap(capfunc)
+    print(authors_raw)
 
-
+    with open('nca_authors.txt', 'w') as listfile:
+        listfile.writelines(authors_raw)
 
 
 nca_authors_unique(engine)
