@@ -57,16 +57,7 @@ class AphSpider(scrapy.Spider):
             cursor.close()
             cursor = connection.cursor()
             print(connection.get_dsn_parameters(), "\n")
-            page_url = response.url         #.split("/")[3]
-            print("Page: ", page_url)
-            # response.xpath('//h1/text()').get() << Hon Anthony Albanese MP
-            # response.xpath('//h3/text()').getall()[6] << Granyndler, New South Wales
-            # response.xpath('//dl/dd/text()').getall()[0:3]
-            # ['Leader of the Opposition',
-            # 'Australian Labor Party',
-            # 'House of Representatives',
-            # response.xpath('//div/strong/following-sibling::p/text()').getall()
-            # ['\r\n                                    334A Marrickville Road',
-            # '\r\n                                    Marrickville, NSW, 2204\r\n                                ',
-            # '\r\n                                     PO Box 5100',
-            # '\r\n                                      Marrickville, NSW, 2204\r\n                                       \r\n                                ']
+            page_url = response.url
+            print("Page: " + page_url)
+        except:
+            pass

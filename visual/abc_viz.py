@@ -124,4 +124,10 @@ def nca_authors_unique(engine):
         listfile.writelines(authors_raw)
 
 
+def article_metrics(engine):
+    pass
+    # create as many solid metrics about each article as you can,
+    # then build a categorisation ML to see if it can determine if
+    # the story involved multiple authors, wires, or a singular author
+
 nca_authors_unique(engine)
