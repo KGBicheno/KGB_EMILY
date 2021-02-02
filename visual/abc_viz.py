@@ -112,16 +112,25 @@ def nca_authors_unique(engine):
         authors_raw = pd.read_sql_query("""SELECT authors FROM nca_articles;""", conn)
 
     r = re.compile('(\s\s+)')
-
+    
+    pd.set_option('display.max_rows', 500)
     gutfunc = lambda x: r.sub(' ', str(x))
     stripfunc = lambda x: str(x).strip()
     capfunc = lambda x: str(x).title()
+    listfunc = lambda x: str(x).split(" And ")
+    listfunc2 = lambda x: str(x).replace(" & ", ", ")
+    soulfunc = lambda x: str(x).replace("Body & Soul", "BodyAndSoul")
+    soulfunc2 = lambda x: str(x).replace("Body&Soul", "BodyAndSoul")
     authors_raw = authors_raw.applymap(stripfunc)
     authors_raw = authors_raw.applymap(capfunc)
-    print(authors_raw)
+    authors_raw = authors_raw.applymap(listfunc)
+    authors_raw = authors_raw.applymap(listfunc2)
+    authors_raw = authors_raw.applymap(soulfunc)
+    authors_raw = authors_raw.applymap(soulfunc2)
+    print(authors_raw.to_string(index=True))
 
     with open('nca_authors.txt', 'w') as listfile:
-        listfile.writelines(authors_raw)
+        listfile.writelines(authors_raw.to_string(index=True))
 
 
 def article_metrics(engine):
